@@ -1,0 +1,11 @@
+Get http://localhost:3000/users/your-token
+Authorization: Bearer <Bearer token>
+
+### Redact test - with Authorization token
+GET http://localhost:3000/logger-redact-test
+Authorization: Bearer test-secret-token-123
+
+### Redact test - without Authorization token
+GET http://localhost:3000/logger-redact-test
+
+### gg
