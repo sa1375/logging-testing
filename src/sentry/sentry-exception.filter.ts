@@ -6,7 +6,7 @@ import {
   ArgumentsHost,
   HttpException,
 } from '@nestjs/common';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import type { Response } from 'express';
 import { AppLogger } from 'src/logger/app-logger.service';
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AppLogger } from './logger/app-logger.service';
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class AppService {
@@ -15,5 +16,12 @@ export class AppService {
     );
 
     throw new Error('Test Sentry error');
+  }
+
+  async sentryPing() {
+    const eventId = Sentry.captureMessage('manual sentry ping', 'error');
+    await Sentry.flush(2000);
+    this.logger.log({ event: 'sentry_ping', eventId }, 'sentry ping sent');
+    return { ok: true, eventId };
   }
 }

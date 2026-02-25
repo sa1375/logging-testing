@@ -11,3 +11,6 @@ GET http://localhost:3000/logger-redact-test
 
 ### Sentry test route
 GET http://localhost:3000/boom
+
+### Sentry direct ping (returns eventId)
+GET http://localhost:3000/sentry-ping

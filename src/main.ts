@@ -1,6 +1,6 @@
 // src/main.ts
 
-import './instrument.ts';
+// import './instrument';
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';

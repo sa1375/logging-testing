@@ -37,4 +37,9 @@ export class AppController {
   boom() {
     return this.appService.boom();
   }
+
+  @Get('sentry-ping')
+  sentryPing() {
+    return this.appService.sentryPing();
+  }
 }
