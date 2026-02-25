@@ -1,4 +1,5 @@
-Get http://localhost:3000/users/your-token
+### to force an error set to force-error 
+Get http://localhost:3000/users/force-error
 Authorization: Bearer <Bearer token>
 
 ### Redact test - with Authorization token
@@ -8,4 +9,5 @@ Authorization: Bearer test-secret-token-123
 ### Redact test - without Authorization token
 GET http://localhost:3000/logger-redact-test
 
-### gg
+### Sentry test route
+GET http://localhost:3000/boom

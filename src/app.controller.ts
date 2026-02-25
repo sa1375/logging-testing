@@ -32,4 +32,9 @@ export class AppController {
     );
     return 'redact test route works';
   }
+
+  @Get('boom')
+  boom() {
+    return this.appService.boom();
+  }
 }
