@@ -18,6 +18,8 @@ import { randomUUID } from 'crypto';
 import type { Request, Response } from 'express';
 import { requestContext } from './request-context';
 
+type RequestWithId = Request & { requestId?: string };
+
 @Injectable()
 export class RequestContextInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -25,7 +27,7 @@ export class RequestContextInterceptor implements NestInterceptor {
     const http = context.switchToHttp();
 
     // Extract Express request and response objects
-    const req = http.getRequest<Request>();
+    const req = http.getRequest<RequestWithId>();
     const res = http.getResponse<Response>();
 
     // Try to read existing request ID from incoming headers.  Header name: x-request-id
@@ -52,22 +54,10 @@ export class RequestContextInterceptor implements NestInterceptor {
      * which helps with debugging and tracing across systems.
      */
     res.setHeader('x-request-id', requestId);
+    req.requestId = requestId;
 
-    /**
-     * Create a new AsyncLocalStorage context for this request.
-     *
-     * Everything executed inside this callback
-     * (including async operations) will have access to:
-     *
-     *   requestContext.getStore()
-     *
-     * which returns:
-     *   { requestId }
-     *
-     * This ensures per-request isolation of contextual data.
-     */
-    return requestContext.run({ requestId }, () => {
-      return next.handle(); // goes to the next interceptor and returns an observable object of request contex
-    });
+    // Persist for downstream handlers/filters in the current async execution chain.
+    requestContext.enterWith({ requestId });
+    return next.handle();
   }
 }

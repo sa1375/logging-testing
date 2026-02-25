@@ -3,37 +3,72 @@
 import {
   ExceptionFilter,
   Catch,
-  ArgumentsHost,
+  type ArgumentsHost,
   HttpException,
 } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { AppLogger } from 'src/logger/app-logger.service';
+import { requestContext } from 'src/logger/request-context';
 
-@Catch() // Catch all exceptions
+type RequestWithId = Request & { requestId?: string };
+
+@Catch()
 export class SentryExceptionFilter implements ExceptionFilter {
-  constructor(private logger: AppLogger) {}
+  constructor(private readonly logger: AppLogger) {}
 
-  async catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp(); // Get the HTTP context
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const request = ctx.getRequest<RequestWithId>();
     const response = ctx.getResponse<Response>();
 
-    const eventId = Sentry.captureException(exception); // Captures an exception event and sends it to Sentry.
-    await Sentry.flush(2000);
-    // Temporary delivery diagnostic while validating Sentry pipeline.
-    this.logger.error(`[sentry] captured exception, eventId=${eventId}`);
+    const store = requestContext.getStore();
+    const headerRequestId = request?.headers?.['x-request-id'];
+    const requestId =
+      request?.requestId ??
+      store?.requestId ??
+      (typeof headerRequestId === 'string'
+        ? headerRequestId
+        : Array.isArray(headerRequestId)
+          ? headerRequestId[0]
+          : undefined);
 
-    if (exception instanceof HttpException) {
-      const status = exception.getStatus();
-      response.status(status).json({
-        statusCode: status,
-        message: exception.message,
+    const isHttp = exception instanceof HttpException;
+    const status = isHttp ? exception.getStatus() : 500;
+
+    const shouldCapture = !isHttp || status >= 500;
+
+    if (shouldCapture) {
+      const eventId = Sentry.withScope((scope) => {
+        scope.setTag('request_id', requestId ?? 'missing');
+        scope.setContext('http', {
+          method: request.method,
+          url: request.originalUrl,
+          status,
+        });
+        return Sentry.captureException(exception);
       });
+
+      this.logger.error(
+        { event: 'sentry_capture', eventId, requestId, status, err: exception },
+        '[sentry] captured exception',
+      );
     } else {
-      response.status(500).json({
-        statusCode: 500,
-        message: 'Internal server error',
-      });
+      this.logger.warn(
+        { event: 'sentry_skip', requestId, status },
+        '[sentry] skipped (expected http error)',
+      );
+    }
+
+    // response
+    if (isHttp) {
+      response
+        .status(status)
+        .json({ statusCode: status, message: exception.message });
+    } else {
+      response
+        .status(500)
+        .json({ statusCode: 500, message: 'Internal server error' });
     }
   }
 }

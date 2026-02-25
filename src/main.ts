@@ -1,7 +1,5 @@
 // src/main.ts
 
-// import './instrument';
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AppLogger } from './logger/app-logger.service';
