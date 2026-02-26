@@ -40,11 +40,12 @@ services:
       - loki
 
   alloy:
-    image: grafana/alloy:1.13.2
+    image: grafana/alloy:v1.13.2
     container_name: alloy
-    command: ['run', '/etc/alloy/alloy.river']
+    command: ['run', '--storage.path=/var/lib/alloy/data', '/etc/alloy/alloy.river']
     volumes:
       - ./observability/alloy.river:/etc/alloy/alloy.river:ro
+      - alloy-data:/var/lib/alloy/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - loki
@@ -52,3 +53,4 @@ services:
 volumes:
   loki-data:
   grafana-data:
+  alloy-data:

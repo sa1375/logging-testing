@@ -5,10 +5,33 @@ discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }
 
+// Keep only the API container and add stable stream labels.
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    action        = "keep"
+    regex         = "api"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+}
+
 // Collect container logs
 loki.source.docker "docker_logs" {
   host       = "unix:///var/run/docker.sock"
-  targets    = discovery.docker.containers.targets
+  targets    = discovery.relabel.docker_logs.output
+  labels     = { job = "docker" }
   forward_to = [loki.process.pipeline.receiver]
 }
 

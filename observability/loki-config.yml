@@ -7,7 +7,8 @@ common:
   path_prefix: /loki
   storage:
     filesystem:
-      directory: /loki/chunks
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -25,3 +26,4 @@ schema_config:
 
 limits_config:
   retention_period: 168h # 7 days
+  allow_structured_metadata: false
