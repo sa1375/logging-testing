@@ -1,0 +1,54 @@
+### docker-compose.yml
+services:
+  api:
+    build: .
+    container_name: nest_api
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENV=local
+      - RELEASE=nest-lab@local
+    ports:
+      - '3000:3000'
+    labels:
+      - 'service=api'
+
+  loki:
+    image: grafana/loki:3.6.7
+    container_name: loki
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - '3100:3100'
+    volumes:
+      - ./observability/loki-config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+
+  grafana:
+    image: grafana/grafana:12.4.0
+    container_name: grafana
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - loki
+
+  alloy:
+    image: grafana/alloy:1.13.2
+    container_name: alloy
+    command: ['run', '/etc/alloy/alloy.river']
+    volumes:
+      - ./observability/alloy.river:/etc/alloy/alloy.river:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+volumes:
+  loki-data:
+  grafana-data:

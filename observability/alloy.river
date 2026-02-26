@@ -1,0 +1,44 @@
+// observability/alloy.river
+
+// Discover running docker containers
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Collect container logs
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  forward_to = [loki.process.pipeline.receiver]
+}
+
+// Parse JSON logs (مثل Pino) و چند label مفید بساز (کم!)
+loki.process "pipeline" {
+  stage.json {
+    expressions = {
+      level     = "level",
+      event     = "event",
+      requestId = "requestId",
+      msg       = "msg",
+      service   = "service",
+    }
+  }
+
+  // هشدار: requestId رو label نکن (cardinality می‌ترکونه)
+  stage.labels {
+    values = {
+      level   = "level",
+      event   = "event",
+      service = "service",
+    }
+  }
+
+  forward_to = [loki.write.out.receiver]
+}
+
+// Ship to Loki
+loki.write "out" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
